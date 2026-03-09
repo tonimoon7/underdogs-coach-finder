@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { User, Mail, Phone, Building2, MapPin, GraduationCap, Briefcase, Globe, Flag, Pencil } from "lucide-react";
@@ -101,6 +102,9 @@ export default function CoachDetailModal({ coach, open, onClose, onEdit }: Coach
                   </span>
                 )}
               </div>
+              <DialogDescription className="sr-only">
+                {coach.name} 코치 상세 프로필
+              </DialogDescription>
               <div className="flex items-center gap-2">
                 <DialogTitle className="text-[22px] font-bold text-foreground tracking-tight">
                   {coach.name}

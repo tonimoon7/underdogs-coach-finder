@@ -2,6 +2,18 @@
 **/node_modules
 .pnpm-store/
 
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+python-service/venv/
+python-service/.env
+*.faiss
+coach_faiss_index/
+
+# Manus dev logs
+.manus-logs/
+
 # Build outputs
 dist/
 build/

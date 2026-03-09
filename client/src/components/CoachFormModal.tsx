@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -195,6 +196,9 @@ export default function CoachFormModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] p-0 rounded-none border border-border shadow-lg">
         <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
+          <DialogDescription className="sr-only">
+            {isEdit ? "코치 정보를 수정합니다" : "새로운 인력을 등록합니다"}
+          </DialogDescription>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-[18px] font-bold text-foreground tracking-tight">
               {isEdit ? "코치 정보 수정" : "신규 인력 등록"}

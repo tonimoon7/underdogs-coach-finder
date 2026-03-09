@@ -19,6 +19,7 @@ export function useCoachSearch() {
   const { allCoaches: allCoachesData } = useCoachData();
   const [filters, setFilters] = useState<FilterState>(initialFilter);
   const [selectedCoaches, setSelectedCoaches] = useState<Set<number>>(new Set());
+  const [aiRecommendedCoaches, setAiRecommendedCoaches] = useState<{coach: Coach, score: number}[]>([]);
 
   const allCoaches = useMemo(() => allCoachesData, [allCoachesData]);
 
@@ -120,8 +121,24 @@ export function useCoachSearch() {
   }, [filteredCoaches, filters]);
 
   const topCoaches = useMemo(() => {
+    if (aiRecommendedCoaches.length > 0) {
+      return aiRecommendedCoaches.slice(0, filters.resultCount);
+    }
     return rankedCoaches.slice(0, filters.resultCount);
-  }, [rankedCoaches, filters.resultCount]);
+  }, [rankedCoaches, filters.resultCount, aiRecommendedCoaches]);
+
+  const setAiRecommendations = useCallback((recommendations: any[]) => {
+    // API에서 넘어온 recommendations = [{ score, metadata }, ...]
+    // metadata에 기존 id가 있다고 가정하고 매핑
+    const newAiCoaches: {coach: Coach, score: number}[] = [];
+    recommendations.forEach(r => {
+      const dbCoach = allCoaches.find(c => c.id === r.metadata?.id || c.name === r.metadata?.name);
+      if (dbCoach) {
+        newAiCoaches.push({ coach: dbCoach, score: r.score });
+      }
+    });
+    setAiRecommendedCoaches(newAiCoaches);
+  }, [allCoaches]);
 
   const toggleCoach = useCallback((coachId: number) => {
     setSelectedCoaches((prev) => {
@@ -146,6 +163,7 @@ export function useCoachSearch() {
 
   const resetFilters = useCallback(() => {
     setFilters(initialFilter);
+    setAiRecommendedCoaches([]);
   }, []);
 
   const selectedCoachList = useMemo(() => {
@@ -166,5 +184,7 @@ export function useCoachSearch() {
     clearSelection,
     allCoaches,
     stats,
+    setAiRecommendations,
+    aiRecommendedCoaches,
   };
 }

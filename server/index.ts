@@ -10,6 +10,35 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  app.use(express.json());
+
+  // Proxy /api requests to the Python FastAPI backend
+  app.use("/api", async (req, res) => {
+    try {
+      const targetUrl = `http://127.0.0.1:8000/api${req.url}`;
+      
+      const options: RequestInit = {
+        method: req.method,
+        headers: {
+          "Content-Type": req.headers["content-type"] || "application/json",
+          ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {})
+        },
+      };
+
+      if (['POST', 'PUT', 'PATCH'].includes(req.method) && Object.keys(req.body || {}).length > 0) {
+        options.body = JSON.stringify(req.body);
+      }
+
+      const response = await fetch(targetUrl, options);
+      const data = await response.json().catch(() => ({}));
+      
+      res.status(response.status).json(data);
+    } catch (error) {
+      console.error("Proxy error to FastAPI:", error);
+      res.status(502).json({ error: "Failed to communicate with AI Backend." });
+    }
+  });
+
   // Serve static files from dist/public in production
   const staticPath =
     process.env.NODE_ENV === "production"

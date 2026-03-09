@@ -3,19 +3,23 @@
  * 좌측 필터 + 우측 코치 카드 그리드
  * 티어 기반 UI, 다국어 지원, 신규 등록/수정 기능
  */
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useCoachSearch } from "@/hooks/useCoachSearch";
 import { useCoachData } from "@/contexts/CoachDataContext";
 import FilterPanel from "@/components/FilterPanel";
 import CoachCard from "@/components/CoachCard";
 import CoachDetailModal from "@/components/CoachDetailModal";
 import CoachFormModal from "@/components/CoachFormModal";
+import AiRecommendModal from "@/components/AiRecommendModal";
 import SelectionBar from "@/components/SelectionBar";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Users, Search, Plus, Settings2 } from "lucide-react";
+import { CheckSquare, Users, Search, Plus, Settings2, Sparkles, LogOut, ChevronDown } from "lucide-react";
 import type { Coach } from "@/types/coach";
 import { AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+
+const ALL_PAGE_SIZE = 50;
 
 export default function Home() {
   const {
@@ -23,6 +27,7 @@ export default function Home() {
     updateFilter,
     resetFilters,
     filteredCoaches,
+    rankedCoaches,
     topCoaches,
     selectedCoaches,
     selectedCoachList,
@@ -31,19 +36,27 @@ export default function Home() {
     clearSelection,
     allCoaches,
     stats,
+    setAiRecommendations,
   } = useCoachSearch();
 
   const { addCoach, updateCoach, deleteCoach, customDataStats } = useCoachData();
   const { t } = useLanguage();
+  const { logout, user } = useAuth();
   const [detailCoach, setDetailCoach] = useState<Coach | null>(null);
   const [viewMode, setViewMode] = useState<"recommended" | "all">("recommended");
   const [formOpen, setFormOpen] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [editCoach, setEditCoach] = useState<Coach | null>(null);
+  const [allPage, setAllPage] = useState(1);
 
+  const allFiltered = filteredCoaches.map((c) => ({ coach: c, score: 0 }));
   const displayCoaches =
     viewMode === "recommended"
       ? topCoaches
-      : filteredCoaches.map((c) => ({ coach: c, score: 0 }));
+      : allFiltered.slice(0, allPage * ALL_PAGE_SIZE);
+
+  const hasMoreAll =
+    viewMode === "all" && allPage * ALL_PAGE_SIZE < filteredCoaches.length;
 
   const hasActiveFilters =
     filters.expertise.length > 0 ||
@@ -78,6 +91,61 @@ export default function Home() {
     deleteCoach(id);
   };
 
+  // AI 추천: 서버 우선 시도, 실패 시 클라이언트 키워드 검색으로 폴백
+  const handleAiRecommend = useCallback(async (text: string) => {
+    try {
+      const res = await fetch('/api/v1/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rfp_text: text }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) throw new Error('server_error');
+      const data = await res.json();
+      if (data.recommendations) {
+        setAiRecommendations(data.recommendations);
+      }
+      setViewMode("recommended");
+    } catch {
+      // 서버 미응답 시 클라이언트 키워드 기반 검색으로 폴백
+      const keywords = text
+        .split(/[\s,./\n]+/)
+        .map((w) => w.trim())
+        .filter((w) => w.length > 1);
+
+      const scored = rankedCoaches.map(({ coach, score }) => {
+        let boost = 0;
+        const haystack = [
+          coach.name,
+          coach.intro,
+          coach.career_history,
+          coach.current_work,
+          coach.underdogs_history,
+          coach.main_field || "",
+          ...coach.expertise,
+          ...coach.industries,
+          ...coach.roles,
+        ]
+          .join(" ")
+          .toLowerCase();
+        keywords.forEach((kw) => {
+          if (haystack.includes(kw.toLowerCase())) boost += 2;
+        });
+        return { coach, score: score + boost };
+      });
+
+      scored.sort((a, b) => b.score - a.score);
+      // rankedCoaches 형식으로 변환해서 AI 추천 목록에 등록
+      setAiRecommendations(
+        scored.slice(0, filters.resultCount).map(({ coach, score }) => ({
+          score,
+          metadata: { id: coach.id, name: coach.name },
+        }))
+      );
+      setViewMode("recommended");
+    }
+  }, [rankedCoaches, filters.resultCount, setAiRecommendations]);
+
   return (
     <div className="flex min-h-screen bg-white">
       {/* 좌측 필터 패널 */}
@@ -109,7 +177,7 @@ export default function Home() {
                   {t("recommended")} {filters.resultCount}
                 </button>
                 <button
-                  onClick={() => setViewMode("all")}
+                  onClick={() => { setViewMode("all"); setAllPage(1); }}
                   className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
                     viewMode === "all"
                       ? "bg-foreground text-white"
@@ -155,6 +223,16 @@ export default function Home() {
                 </div>
               )}
 
+              {/* AI 추천 버튼 */}
+              <Button
+                onClick={() => setAiModalOpen(true)}
+                variant="outline"
+                className="h-7 px-3 text-[11px] rounded-[2px] border-indigo-400 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+              >
+                <Sparkles className="w-3 h-3 mr-1" />
+                {t("ai_recommend") || "AI 추천"}
+              </Button>
+
               {/* 신규 등록 버튼 */}
               <Button
                 onClick={handleOpenNew}
@@ -174,6 +252,21 @@ export default function Home() {
                   </span>
                   {t("selected")}
                 </span>
+              </div>
+
+              {/* 사용자 / 로그아웃 */}
+              <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
+                {user && (
+                  <span className="text-[10px] text-muted-foreground">{user}</span>
+                )}
+                <Button
+                  onClick={logout}
+                  variant="ghost"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500"
+                  title="로그아웃"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
           </div>
@@ -201,22 +294,38 @@ export default function Home() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-              <AnimatePresence mode="popLayout">
-                {displayCoaches.map((item, idx) => (
-                  <CoachCard
-                    key={item.coach.id}
-                    coach={item.coach}
-                    score={viewMode === "recommended" ? item.score : undefined}
-                    rank={viewMode === "recommended" ? idx + 1 : undefined}
-                    isSelected={selectedCoaches.has(item.coach.id)}
-                    onToggle={() => toggleCoach(item.coach.id)}
-                    onViewDetail={() => setDetailCoach(item.coach)}
-                    onEdit={() => handleOpenEdit(item.coach)}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                <AnimatePresence mode="popLayout">
+                  {displayCoaches.map((item, idx) => (
+                    <CoachCard
+                      key={item.coach.id}
+                      coach={item.coach}
+                      score={viewMode === "recommended" ? item.score : undefined}
+                      rank={viewMode === "recommended" ? idx + 1 : undefined}
+                      isSelected={selectedCoaches.has(item.coach.id)}
+                      onToggle={() => toggleCoach(item.coach.id)}
+                      onViewDetail={() => setDetailCoach(item.coach)}
+                      onEdit={() => handleOpenEdit(item.coach)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {/* 더 보기 버튼 (전체 뷰) */}
+              {hasMoreAll && (
+                <div className="flex justify-center mt-8">
+                  <Button
+                    onClick={() => setAllPage((p) => p + 1)}
+                    variant="outline"
+                    className="h-9 px-6 text-[12px] rounded-[2px] border-border"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                    더 보기 ({displayCoaches.length} / {filteredCoaches.length})
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
@@ -242,6 +351,13 @@ export default function Home() {
         coach={editCoach}
         onSave={handleSave}
         onDelete={handleDelete}
+      />
+
+      {/* AI 추천 모달 */}
+      <AiRecommendModal
+        open={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onRecommend={handleAiRecommend}
       />
 
       {/* 하단 선택 바 */}

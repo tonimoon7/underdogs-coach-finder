@@ -188,4 +188,6 @@ export const UI_LABELS: Record<string, Record<LangCode, string>> = {
   global_coach: { ko: "글로벌코치", en: "Global Coach", ja: "グローバルコーチ" },
   add_new: { ko: "신규 등록", en: "New Entry", ja: "新規登録" },
   edit: { ko: "수정", en: "Edit", ja: "編集" },
+  ai_recommend: { ko: "AI 맞춤 코치 추천", en: "AI Recommend", ja: "AI コーチ推薦" },
+  ai_recommend_desc: { ko: "제안요청서(RFP) 내용을 입력하시면 최적의 코치진을 자동으로 추천해 드립니다.", en: "Enter RFP details for automatic coach recommendations.", ja: "RFPを入力すると最適なコーチを推薦します。" },
 };

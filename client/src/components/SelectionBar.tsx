@@ -41,25 +41,19 @@ export default function SelectionBar({
   const handleExport = async (type: "docx" | "pptx") => {
     setExporting(true);
     try {
-      const defaultTitle = lang === "en" ? "Underdogs Coach Profile" : lang === "ja" ? "アンダードッグス コーチプロフィール" : "언더독스 코치 프로필";
+      const defaultTitle = t("login_title") || "언더독스 코치 프로필";
       const title = projectTitle.trim() || defaultTitle;
+
       if (type === "docx") {
         await exportToDocx(selectedCoaches, title);
       } else {
         await exportToPptx(selectedCoaches, title);
       }
-      toast.success(
-        lang === "en" ? `${type.toUpperCase()} file downloading.` :
-        lang === "ja" ? `${type.toUpperCase()}ファイルをダウンロードします。` :
-        `${type.toUpperCase()} 파일이 다운로드됩니다.`
-      );
+
+      toast.success(t("doc_complete") || `${type.toUpperCase()} 파일이 다운로드됩니다.`);
       setExportOpen(false);
-    } catch (err) {
-      toast.error(
-        lang === "en" ? "Export error. Please try again." :
-        lang === "ja" ? "エクスポートエラー。もう一度お試しください。" :
-        "내보내기 중 오류가 발생했습니다. 다시 시도해 주세요."
-      );
+    } catch (err: any) {
+      toast.error(err.message || t("error") || "내보내기 중 오류가 발생했습니다.");
       console.error(err);
     } finally {
       setExporting(false);
@@ -195,7 +189,7 @@ export default function SelectionBar({
               ) : (
                 <FileText className="w-4 h-4 mr-2" />
               )}
-              Word (DOCX)
+              {t("generate_word") || "Word (DOCX)"}
             </Button>
             <Button
               onClick={() => handleExport("pptx")}
@@ -207,7 +201,7 @@ export default function SelectionBar({
               ) : (
                 <Presentation className="w-4 h-4 mr-2" />
               )}
-              PPT (PPTX)
+              {t("generate_pptx") || "PPT (PPTX)"}
             </Button>
           </DialogFooter>
         </DialogContent>
