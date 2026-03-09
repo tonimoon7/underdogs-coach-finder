@@ -182,14 +182,13 @@ export default function Home() {
               )}
 
               {/* AI 추천 버튼 */}
-              <Button
+              <button
                 onClick={() => setAiModalOpen(true)}
-                variant="outline"
-                className="h-7 px-3 text-[11px] rounded-[2px] border-primary text-primary hover:bg-primary hover:text-white"
+                className="flex items-center gap-1.5 h-9 px-4 rounded-[3px] text-[12px] font-semibold text-white bg-violet-600 hover:bg-violet-700 active:bg-violet-800 shadow-sm transition-colors"
               >
-                <Sparkles className="w-3 h-3 mr-1" />
-                AI 추천
-              </Button>
+                <Sparkles className="w-4 h-4" />
+                AI 맞춤 추천
+              </button>
 
               {/* 신규 등록 버튼 */}
               <Button
