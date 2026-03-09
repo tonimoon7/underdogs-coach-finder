@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import type { Coach, FilterState } from "@/types/coach";
 import { useCoachData } from "@/contexts/CoachDataContext";
 import type { AiExtractResult } from "@/lib/aiReason";
-import { generateAiReason } from "@/lib/aiReason";
+import { scoreCoachMatch } from "@/lib/aiReason";
 
 const initialFilter: FilterState = {
   search: "",
@@ -117,30 +117,31 @@ export function useCoachSearch() {
         score += Math.min(coach.career_years / 10, 1);
         if (coach.career_history) score += 1;
         if (coach.has_startup) score += 0.5;
-        // AI freeKeyword 부스트
+        // AI 매칭 점수 계산 (소프트 랭킹 — 하드 필터 대신 점수로만 반영)
+        let matchScore: number | undefined;
+        let aiReason: string | undefined;
         if (aiResult) {
-          const coachText = [
-            coach.intro,
-            coach.career_history,
-            coach.current_work,
-            coach.underdogs_history,
-            coach.tools_skills,
-          ].join(" ").toLowerCase();
-          aiResult.freeKeywords.forEach((kw) => {
-            if (coachText.includes(kw.toLowerCase())) score += 3;
-          });
+          const { matchScore: ms, reason } = scoreCoachMatch(coach, aiResult);
+          matchScore = ms;
+          aiReason = reason || undefined;
+          // 매칭 점수를 기존 점수에 블렌딩 (AI 모드에서 주요 순위 기준)
+          score += ms * 0.8;
         }
-        return { coach, score };
+        return { coach, score, matchScore, aiReason };
       })
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => {
+        // AI 모드: matchScore 우선, 동점 시 기존 점수
+        if (aiResult) {
+          const diff = (b.matchScore ?? 0) - (a.matchScore ?? 0);
+          if (diff !== 0) return diff;
+        }
+        return b.score - a.score;
+      });
   }, [filteredCoaches, filters, aiResult]);
 
   const topCoaches = useMemo(() => {
-    return rankedCoaches.slice(0, filters.resultCount).map((item) => ({
-      ...item,
-      aiReason: aiResult ? generateAiReason(item.coach, aiResult) : undefined,
-    }));
-  }, [rankedCoaches, filters.resultCount, aiResult]);
+    return rankedCoaches.slice(0, filters.resultCount);
+  }, [rankedCoaches, filters.resultCount]);
 
   const toggleCoach = useCallback((coachId: number) => {
     setSelectedCoaches((prev) => {
@@ -168,13 +169,8 @@ export function useCoachSearch() {
   }, []);
 
   const applyAiResult = useCallback((result: AiExtractResult) => {
+    // 하드 필터 적용 제거 — AI 결과는 점수 부스팅으로만 반영하여 빈 결과 방지
     setAiResult(result);
-    setFilters((prev) => ({
-      ...prev,
-      expertise: result.expertise.length > 0 ? result.expertise : prev.expertise,
-      industries: result.industries.length > 0 ? result.industries : prev.industries,
-      roles: result.roles.length > 0 ? result.roles : prev.roles,
-    }));
   }, []);
 
   const clearAiResult = useCallback(() => {

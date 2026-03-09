@@ -49,7 +49,7 @@ export default function Home() {
   const displayCoaches =
     viewMode === "recommended"
       ? topCoaches
-      : filteredCoaches.map((c) => ({ coach: c, score: 0 }));
+      : filteredCoaches.map((c) => ({ coach: c, score: 0, matchScore: undefined, aiReason: undefined }));
 
   const hasActiveFilters =
     filters.expertise.length > 0 ||
@@ -248,7 +248,8 @@ export default function Home() {
                     onToggle={() => toggleCoach(item.coach.id)}
                     onViewDetail={() => setDetailCoach(item.coach)}
                     onEdit={() => handleOpenEdit(item.coach)}
-                    aiReason={viewMode === "recommended" ? (item as any).aiReason : undefined}
+                    aiReason={viewMode === "recommended" ? item.aiReason : undefined}
+                    matchScore={viewMode === "recommended" ? item.matchScore : undefined}
                   />
                 ))}
               </AnimatePresence>

@@ -17,6 +17,7 @@ interface CoachCardProps {
   onViewDetail: () => void;
   onEdit?: () => void;
   aiReason?: string;
+  matchScore?: number;
 }
 
 function formatCareer(raw: string, years: number): string {
@@ -50,6 +51,7 @@ export default function CoachCard({
   onViewDetail,
   onEdit,
   aiReason,
+  matchScore,
 }: CoachCardProps) {
   const { lang, t } = useLanguage();
   const catLabel = CATEGORY_LABELS[coach.category]?.[lang] || coach.category;
@@ -159,11 +161,24 @@ export default function CoachCard({
           </p>
         )}
 
-        {/* AI 추천 이유 */}
-        {aiReason && (
-          <div className="flex items-start gap-1 mb-2 px-1.5 py-1 bg-primary/5 border border-primary/20 rounded-[2px]">
-            <span className="text-[9px] font-bold text-primary mt-[1px] shrink-0">✦ AI</span>
-            <span className="text-[10px] text-primary/80 leading-snug">{aiReason}</span>
+        {/* AI 매칭 점수 + 추천 이유 */}
+        {matchScore !== undefined && (
+          <div className="flex items-center gap-1.5 mb-2 px-1.5 py-1 bg-violet-50 border border-violet-200 rounded-[2px]">
+            <span className="text-[9px] font-bold text-violet-600 shrink-0">✦ AI</span>
+            <span className="text-[10px] text-violet-700 leading-snug flex-1 min-w-0 truncate">
+              {aiReason || "관련 이력 확인됨"}
+            </span>
+            <span
+              className={`text-[11px] font-mono font-bold shrink-0 tabular-nums ${
+                matchScore >= 70
+                  ? "text-emerald-600"
+                  : matchScore >= 40
+                  ? "text-amber-600"
+                  : "text-gray-400"
+              }`}
+            >
+              {matchScore}%
+            </span>
           </div>
         )}
 
