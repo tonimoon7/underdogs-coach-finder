@@ -73,7 +73,12 @@ Return JSON only.`,
         throw new Error("Unexpected response type from Claude");
       }
 
-      const result: RecommendResult = JSON.parse(content.text);
+      // LLM이 ```json ... ``` 마크다운 코드블록으로 감쌀 수 있으므로 제거
+      let jsonText = content.text.trim();
+      if (jsonText.startsWith("```")) {
+        jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+      }
+      const result: RecommendResult = JSON.parse(jsonText);
       return res.json(result);
     } catch (err) {
       console.error("Recommend API error:", err);
