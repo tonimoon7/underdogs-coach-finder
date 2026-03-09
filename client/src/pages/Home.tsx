@@ -1,16 +1,18 @@
 /*
  * Home - Swiss Industrial Dashboard
  * 좌측 필터 + 우측 코치 카드 그리드
- * 티어 기반 UI, 다국어 지원
+ * 티어 기반 UI, 다국어 지원, 신규 등록/수정 기능
  */
 import { useState } from "react";
 import { useCoachSearch } from "@/hooks/useCoachSearch";
+import { useCoachData } from "@/contexts/CoachDataContext";
 import FilterPanel from "@/components/FilterPanel";
 import CoachCard from "@/components/CoachCard";
 import CoachDetailModal from "@/components/CoachDetailModal";
+import CoachFormModal from "@/components/CoachFormModal";
 import SelectionBar from "@/components/SelectionBar";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Users, Search } from "lucide-react";
+import { CheckSquare, Users, Search, Plus, Settings2 } from "lucide-react";
 import type { Coach } from "@/types/coach";
 import { AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -31,9 +33,12 @@ export default function Home() {
     stats,
   } = useCoachSearch();
 
+  const { addCoach, updateCoach, deleteCoach, customDataStats } = useCoachData();
   const { t } = useLanguage();
   const [detailCoach, setDetailCoach] = useState<Coach | null>(null);
   const [viewMode, setViewMode] = useState<"recommended" | "all">("recommended");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editCoach, setEditCoach] = useState<Coach | null>(null);
 
   const displayCoaches =
     viewMode === "recommended"
@@ -50,6 +55,28 @@ export default function Home() {
     filters.tiers.length > 0 ||
     filters.categories.length > 0 ||
     filters.countries.length > 0;
+
+  const handleOpenNew = () => {
+    setEditCoach(null);
+    setFormOpen(true);
+  };
+
+  const handleOpenEdit = (coach: Coach) => {
+    setEditCoach(coach);
+    setFormOpen(true);
+  };
+
+  const handleSave = (data: Omit<Coach, "id"> | Partial<Coach>, isNew: boolean) => {
+    if (isNew) {
+      addCoach(data as Omit<Coach, "id">);
+    } else if (editCoach) {
+      updateCoach(editCoach.id, data as Partial<Coach>);
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    deleteCoach(id);
+  };
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -114,15 +141,40 @@ export default function Home() {
               )}
             </div>
 
-            {/* 선택 상태 */}
-            <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-              <Users className="w-3.5 h-3.5" />
-              <span>
-                <span className="font-mono font-semibold text-foreground">
-                  {selectedCoaches.size}
+            {/* 우측: 신규 등록 + 선택 상태 */}
+            <div className="flex items-center gap-4">
+              {/* 커스텀 데이터 인디케이터 */}
+              {(customDataStats.added > 0 || customDataStats.edited > 0) && (
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted px-2 py-1">
+                  <Settings2 className="w-3 h-3" />
+                  <span>
+                    {customDataStats.added > 0 && `+${customDataStats.added}`}
+                    {customDataStats.added > 0 && customDataStats.edited > 0 && " / "}
+                    {customDataStats.edited > 0 && `${customDataStats.edited} 수정`}
+                  </span>
+                </div>
+              )}
+
+              {/* 신규 등록 버튼 */}
+              <Button
+                onClick={handleOpenNew}
+                variant="outline"
+                className="h-7 px-3 text-[11px] rounded-[2px] border-primary text-primary hover:bg-primary hover:text-white"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                {t("add_new") || "신규 등록"}
+              </Button>
+
+              {/* 선택 상태 */}
+              <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                <Users className="w-3.5 h-3.5" />
+                <span>
+                  <span className="font-mono font-semibold text-foreground">
+                    {selectedCoaches.size}
+                  </span>
+                  {t("selected")}
                 </span>
-                {t("selected")}
-              </span>
+              </div>
             </div>
           </div>
         </div>
@@ -160,6 +212,7 @@ export default function Home() {
                     isSelected={selectedCoaches.has(item.coach.id)}
                     onToggle={() => toggleCoach(item.coach.id)}
                     onViewDetail={() => setDetailCoach(item.coach)}
+                    onEdit={() => handleOpenEdit(item.coach)}
                   />
                 ))}
               </AnimatePresence>
@@ -173,6 +226,22 @@ export default function Home() {
         coach={detailCoach}
         open={!!detailCoach}
         onClose={() => setDetailCoach(null)}
+        onEdit={(coach) => {
+          setDetailCoach(null);
+          handleOpenEdit(coach);
+        }}
+      />
+
+      {/* 코치 등록/수정 모달 */}
+      <CoachFormModal
+        open={formOpen}
+        onClose={() => {
+          setFormOpen(false);
+          setEditCoach(null);
+        }}
+        coach={editCoach}
+        onSave={handleSave}
+        onDelete={handleDelete}
       />
 
       {/* 하단 선택 바 */}

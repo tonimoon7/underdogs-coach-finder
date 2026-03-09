@@ -186,4 +186,6 @@ export const UI_LABELS: Record<string, Record<LangCode, string>> = {
   consultant: { ko: "컨설턴트", en: "Consultant", ja: "コンサルタント" },
   investor: { ko: "투자사", en: "Investor", ja: "投資家" },
   global_coach: { ko: "글로벌코치", en: "Global Coach", ja: "グローバルコーチ" },
+  add_new: { ko: "신규 등록", en: "New Entry", ja: "新規登録" },
+  edit: { ko: "수정", en: "Edit", ja: "編集" },
 };

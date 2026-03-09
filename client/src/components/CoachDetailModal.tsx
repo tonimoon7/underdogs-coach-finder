@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { User, Mail, Phone, Building2, MapPin, GraduationCap, Briefcase, Globe, Flag } from "lucide-react";
+import { User, Mail, Phone, Building2, MapPin, GraduationCap, Briefcase, Globe, Flag, Pencil } from "lucide-react";
 import type { Coach } from "@/types/coach";
 import { TIER_LABELS, CATEGORY_LABELS } from "@/types/coach";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -18,6 +18,7 @@ interface CoachDetailModalProps {
   coach: Coach | null;
   open: boolean;
   onClose: () => void;
+  onEdit?: (coach: Coach) => void;
 }
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
@@ -60,7 +61,7 @@ const TIER_BADGE_COLORS: Record<number, string> = {
   3: "bg-muted-foreground text-white",
 };
 
-export default function CoachDetailModal({ coach, open, onClose }: CoachDetailModalProps) {
+export default function CoachDetailModal({ coach, open, onClose, onEdit }: CoachDetailModalProps) {
   const { lang, t } = useLanguage();
   if (!coach) return null;
 
@@ -100,9 +101,20 @@ export default function CoachDetailModal({ coach, open, onClose }: CoachDetailMo
                   </span>
                 )}
               </div>
-              <DialogTitle className="text-[22px] font-bold text-foreground tracking-tight">
-                {coach.name}
-              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <DialogTitle className="text-[22px] font-bold text-foreground tracking-tight">
+                  {coach.name}
+                </DialogTitle>
+                {onEdit && (
+                  <button
+                    onClick={() => onEdit(coach)}
+                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                    title="수정"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
               <p className="text-[13px] text-muted-foreground mt-1">
                 {[coach.organization, coach.position].filter(Boolean).join(" · ") || coach.main_field || ""}
               </p>

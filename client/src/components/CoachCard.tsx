@@ -2,7 +2,7 @@
  * CoachCard - Swiss Industrial Design
  * 얇은 1px 구분선, 원형 흑백 사진, 티어 뱃지, 카테고리 표시
  */
-import { Check, User, Globe } from "lucide-react";
+import { Check, User, Globe, Pencil } from "lucide-react";
 import type { Coach } from "@/types/coach";
 import { TIER_LABELS, CATEGORY_LABELS } from "@/types/coach";
 import { motion } from "framer-motion";
@@ -15,6 +15,7 @@ interface CoachCardProps {
   isSelected: boolean;
   onToggle: () => void;
   onViewDetail: () => void;
+  onEdit?: () => void;
 }
 
 function formatCareer(raw: string, years: number): string {
@@ -46,6 +47,7 @@ export default function CoachCard({
   isSelected,
   onToggle,
   onViewDetail,
+  onEdit,
 }: CoachCardProps) {
   const { lang, t } = useLanguage();
   const catLabel = CATEGORY_LABELS[coach.category]?.[lang] || coach.category;
@@ -194,6 +196,20 @@ export default function CoachCard({
             <>
               <span className="w-px h-3 bg-border" />
               <Globe className="w-3 h-3 text-primary" />
+            </>
+          )}
+          {onEdit && (
+            <>
+              <span className="w-px h-3 bg-border" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
             </>
           )}
         </div>
